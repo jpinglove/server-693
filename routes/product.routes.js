@@ -12,7 +12,8 @@ module.exports = function(app) {
   // 我们不再返回image数据，因为列表页不需要那么大的数据量
   app.get('/api/products', async (req, res) => {
     const { category, search } = req.query;
-    let query = {};
+    // 默认查询条件增加了 status: 'selling'
+    let query = { status: 'selling' };
     if (category) query.category = category;
     if (search) query.title = { $regex: search, $options: 'i' };
 
@@ -48,9 +49,27 @@ module.exports = function(app) {
           res.status(500).send({ message: error.message });
       }
   });
+  
+  // 修改商品状态（下架）接口
+  app.put('/api/products/:id/status', [verifyToken], async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).send({ message: 'Product not found.' });
+        }
+        // 验证当前用户是否是商品所有者
+        if (product.owner.toString() !== req.userId) {
+            return res.status(403).send({ message: 'Forbidden: You are not the owner of this product.' });
+        }
+        product.status = req.body.status; // 期望前端传来 'sold'
+        await product.save();
+        res.status(200).send({ message: 'Product status updated successfully.' });
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+  });
 
-
-  // 发布新商品 (需要登录) - 【重要修改】
+  // 发布新商品 (需要登录)
   // 使用 multer 中间件来处理 'imageFile' 字段的单个文件上传
   app.post('/api/products', [verifyToken, upload.single('imageFile')], async (req, res) => {
     // 验证文件是否存在
@@ -107,6 +126,29 @@ module.exports = function(app) {
           await userToEvaluate.save();
           res.status(200).send({ message: 'Evaluation submitted successfully.'});
       } catch (error) { res.status(500).send({ message: error.message }); }
+  });
+
+  // 获取用户收藏的商品列表
+  app.get('/api/user/favorites', [verifyToken], async (req, res) => {
+      try {
+          const user = await User.findById(req.userId);
+          // 找到所有 favoritedBy 数组包含当前用户ID的商品
+          const products = await Product.find({ favoritedBy: user._id }).select('-image');
+          res.status(200).send(products);
+      } catch (error) {
+          res.status(500).send({ message: error.message });
+      }
+  });
+
+  // 获取用户发布的商品列表
+  app.get('/api/user/publications', [verifyToken], async (req, res) => {
+      try {
+          // 找到所有 owner 是当前用户ID的商品
+          const products = await Product.find({ owner: req.userId }).select('-image').sort({ createdAt: -1 });
+          res.status(200).send(products);
+      } catch (error) {
+          res.status(500).send({ message: error.message });
+      }
   });
 };
 
