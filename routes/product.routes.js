@@ -3,13 +3,13 @@ const { verifyToken } = require("../middleware/authJwt");
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
 
-// Multer 配置: 使用内存存储，因为我们想把文件转成Buffer存入DB
+// Multer 配置: 使用内存存储，把文件转成Buffer存入DB
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 module.exports = function (app) {
-  // 获取所有商品 (可带分类和搜索) - 【重要修改】
-  // 我们不再返回image数据，因为列表页不需要那么大的数据量
+  // 获取所有商品 
+  // 不再返回image数据，因为列表页不需要那么大的数据量
   app.get("/api/products", async (req, res) => {
     const { category, search } = req.query;
     // 默认查询条件增加了 status: 'selling'
@@ -41,7 +41,7 @@ module.exports = function (app) {
     }
   });
 
-  // 【新增】专门用于获取图片的路由
+  // 专门用于获取图片的路由
   app.get("/api/products/:id/image", async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
