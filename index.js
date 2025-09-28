@@ -10,6 +10,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const mongooseOptions = {
+    serverSelectionTimeoutMS: 30000, // 将服务器选择超时时间从10秒增加到30秒
+    socketTimeoutMS: 45000, // 将套接字超时时间增加到45秒
+};
+
 // Database Connection
 mongoose
   .connect(process.env.MONGODB_URI)
