@@ -34,10 +34,10 @@ require("./routes/product.routes")(app);
 // Vercel 部署专用
 module.exports = app;
 
-/*
+// 发布时把下面的listen注掉
 // Set port, listen for requests
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
-*/
+
