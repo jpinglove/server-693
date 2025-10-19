@@ -2,13 +2,14 @@ const multer = require("multer");
 const { verifyToken } = require("../middleware/authJwt");
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
+const Order = require("../models/order.model");
 
 // Multer 配置: 使用内存存储，把文件转成Buffer存入DB
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 module.exports = function (app) {
-  // 获取所有商品 
+  // 获取所有商品
   // 不再返回image数据，因为列表页不需要那么大的数据量
   app.get("/api/products", async (req, res) => {
     const { category, search } = req.query;
@@ -223,4 +224,116 @@ module.exports = function (app) {
     [verifyToken, upload.single("imageFile")],
     updateProductLogic
   );
+
+  // 获取所有商品 - 支持排序和筛选
+  app.get("/api/products", async (req, res) => {
+    const {
+      category,
+      search,
+      campus,
+      condition,
+      priceMin,
+      priceMax,
+      sortBy,
+      sortOrder,
+    } = req.query;
+    let query = { status: "selling" };
+
+    // 筛选条件
+    if (category) query.category = category;
+    if (search) query.title = { $regex: search, $options: "i" };
+    if (campus) query.campus = campus;
+    if (condition) query.condition = condition;
+    if (priceMin || priceMax) {
+      query.price = {};
+      if (priceMin) query.price.$gte = Number(priceMin);
+      if (priceMax) query.price.$lte = Number(priceMax);
+    }
+
+    // 排序条件
+    let sort = { createdAt: -1 }; // 默认按创建时间降序
+    if (sortBy) {
+      sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+    }
+
+    try {
+      const products = await Product.find(query)
+        .select("-image")
+        .populate("owner", "nickname")
+        .sort(sort);
+      res.status(200).send(products);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
+
+  // 增加商品浏览量
+  app.put("/api/products/:id/view", [verifyToken], async (req, res) => {
+    try {
+      // 使用 $inc 原子操作增加浏览量
+      await Product.findByIdAndUpdate(req.params.id, {
+        $inc: { viewCount: 1 },
+      });
+      // 使用 $addToSet 将商品ID加入用户浏览记录，避免重复
+      await User.findByIdAndUpdate(req.userId, {
+        $addToSet: { viewHistory: req.params.id },
+      });
+      res.status(200).send({ message: "View count updated." });
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
+
+  // 修改商品状态（下架）接口 - 增加创建订单的逻辑
+  app.put("/api/products/:id/status", [verifyToken], async (req, res) => {
+    try {
+      const product = await Product.findById(req.params.id);
+      if (!product)
+        return res.status(404).send({ message: "Product not found." });
+      if (product.owner.toString() !== req.userId)
+        return res.status(403).send({ message: "Forbidden." });
+
+      product.status = "sold";
+      await product.save();
+
+      // 创建一条订单交易记录
+      const order = new Order({
+        product: product._id,
+        seller: product.owner,
+        price: product.price,
+      });
+      await order.save();
+
+      res
+        .status(200)
+        .send({ message: "Product status updated and order created." });
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
+
+  // 获取用户订单记录
+  app.get("/api/user/orders", [verifyToken], async (req, res) => {
+    try {
+      const orders = await Order.find({ seller: req.userId }).populate(
+        "product"
+      );
+      res.status(200).send(orders);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
+
+  // 获取用户浏览记录
+  app.get("/api/user/view-history", [verifyToken], async (req, res) => {
+    try {
+      const user = await User.findById(req.userId).populate({
+        path: "viewHistory",
+        select: "-image", // 同样不在列表页加载图片
+      });
+      res.status(200).send(user.viewHistory);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
 };
