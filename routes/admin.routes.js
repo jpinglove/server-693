@@ -10,8 +10,10 @@ const upload = require("multer")(); // 使用 multer 处理导入的文件
 module.exports = function (app) {
   // 导出用户
   app.get("/api/admin/export/users", [verifyToken], async (req, res) => {
+    const fields = ['_id', 'studentId', 'nickname', 'isAdmin', 'reputation.good', 'reputation.neutral', 'reputation.bad', 'createdAt'];
+    const opts = { fields };
+    const parser = new Parser(opts);
     const users = await User.find().select('-password').lean(); // 不导出密码
-    const parser = new Parser();
     const csv = parser.parse(users);
     res.header("Content-Type", "text/csv");
     res.attachment("all_users.csv");
@@ -19,18 +21,39 @@ module.exports = function (app) {
   });
 
   app.get('/api/admin/export/products', [verifyToken], async (req, res) => {
+    const fields = [
+        { label: '商品ID', value: '_id' },
+        { label: '标题', value: 'title' },
+        { label: '价格', value: 'price' },
+        { label: '分类', value: 'category' },
+        { label: '校区', value: 'campus' },
+        { label: '新旧程度', value: 'condition' },
+        { label: '状态', value: 'status' },
+        { label: '浏览量', value: 'viewCount' },
+        { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+        { label: '发布时间', value: 'createdAt' }
+    ];
+    const opts = { fields };
+    const parser = new Parser(opts);
     // 使用 populate 获取 owner 的昵称
     const products = await Product.find().populate('owner', 'nickname').select('-image').lean();
-    const parser = new Parser();
     const csvData = parser.parse(products);
     res.header('Content-Type', 'text/csv');
     res.attachment('all_products.csv');
     res.send(csvData);
 });
 
-app.get('/api/admin/export/orders', [verifyToken], async (req, res) => {
+  app.get('/api/admin/export/orders', [verifyToken], async (req, res) => {
+  const fields = [
+        { label: '订单ID', value: '_id' },
+        { label: '商品标题', value: 'product.title' },
+        { label: '成交价格', value: 'price' },
+        { label: '卖家', value: 'seller.nickname' },
+        { label: '成交日期', value: 'transactionDate' }
+    ];
+    const opts = { fields };
+    const parser = new Parser(opts);
     const orders = await Order.find().populate('seller', 'nickname').populate('product', 'title').lean();
-    const parser = new Parser();
     const csvData = parser.parse(orders);
     res.header('Content-Type', 'text/csv');
     res.attachment('all_orders.csv');
