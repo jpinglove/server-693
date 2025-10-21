@@ -15,6 +15,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
     // 简单的信誉评价体系
     reputation: {
       good: { type: Number, default: 0 },
