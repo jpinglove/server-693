@@ -98,6 +98,8 @@ module.exports = function (app) {
           price: req.body.price,
           category: req.body.category,
           owner: req.userId,
+          campus: req.body.campus,
+          condition: req.body.condition,
           image: {
             data: req.file.buffer, // 文件数据
             contentType: req.file.mimetype, // 文件类型
