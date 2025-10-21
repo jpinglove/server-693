@@ -77,16 +77,4 @@ app.get('/api/admin/export/orders', [verifyToken], async (req, res) => {
     res.status(200).send(stats);
   });
 
-  // 热门分类统计
-  app.get(
-    "/api/admin/stats/hot-categories",
-    [verifyToken],
-    async (req, res) => {
-      const stats = await Product.aggregate([
-        { $group: { _id: "$category", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-      ]);
-      res.status(200).send(stats);
-    }
-  );
 };
