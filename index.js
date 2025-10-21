@@ -28,6 +28,7 @@ app.get("/", (req, res) => {
 
 require("./routes/auth.routes")(app);
 require("./routes/product.routes")(app);
+require('./routes/admin.routes')(app); 
 
 // 将 'app.listen' 部分移除，并导出 app
 // Vercel 会处理监听，只需要导出 express 应用实例
