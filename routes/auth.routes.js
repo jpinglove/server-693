@@ -35,6 +35,7 @@ module.exports = function(app) {
         id: user._id,
         studentId: user.studentId,
         nickname: user.nickname,
+        isAdmin: user.isAdmin,
         accessToken: token
       });
     } catch (error) {
