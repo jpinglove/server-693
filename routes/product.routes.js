@@ -21,6 +21,8 @@ module.exports = function (app) {
 
     try {
       // .select('-image') 表示查询结果中不包含 image 字段
+      console.log("[DEBUG] Product query:", JSON.stringify(query));
+      
       const products = await Product.find(query)
         .select("-image")
         .populate("owner", "nickname")

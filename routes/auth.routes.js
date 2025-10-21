@@ -31,7 +31,7 @@ module.exports = function(app) {
 
       const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: 86400 }); // 24 hours
 
-            // 准备要发送给客户端的数据
+      // 准备要发送给客户端的数据
       const responsePayload = {
         id: user._id,
         studentId: user.studentId,
@@ -40,22 +40,8 @@ module.exports = function(app) {
         accessToken: token
       };
       
-      // 【新增调试信息】：在发送前，打印这个对象
-      console.log('-------------------------------------------');
-      console.log('[AUTH DEBUG] Login successful! Sending payload to client:');
-      console.log(responsePayload);
-      console.log('-------------------------------------------');
-
       // 发送响应
       res.status(200).send(responsePayload);
-
-      // res.status(200).send({
-      //   id: user._id,
-      //   studentId: user.studentId,
-      //   nickname: user.nickname,
-      //   isAdmin: user.isAdmin,
-      //   accessToken: token
-      // });
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
