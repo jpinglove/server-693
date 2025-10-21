@@ -336,4 +336,48 @@ module.exports = function (app) {
       res.status(500).send({ message: error.message });
     }
   });
+
+    // 普通用户导出自己的发布列表
+    app.get('/api/user/export/publications', [verifyToken], async (req, res) => {
+        try {
+            const products = await Product.find({ owner: req.userId }).select('-image').lean();
+            const parser = new Parser();
+            const csvData = parser.parse(products);
+            res.header('Content-Type', 'text/csv');
+            res.attachment('my_publications.csv');
+            res.send(csvData);
+        } catch (error) {
+            res.status(500).send({ message: error.message });
+        }
+    });
+
+    // 普通用户导出自己的订单列表
+    app.get('/api/user/export/orders', [verifyToken], async (req, res) => {
+        try {
+            const orders = await Order.find({ seller: req.userId }).populate('product', 'title').lean();
+            const parser = new Parser();
+            const csvData = parser.parse(orders);
+            res.header('Content-Type', 'text/csv');
+            res.attachment('my_orders.csv');
+            res.send(csvData);
+        } catch (error) {
+            res.status(500).send({ message: error.message });
+        }
+    });
+
+    // 普通用户导出自己的收藏列表
+    app.get('/api/user/export/favorites', [verifyToken], async (req, res) => {
+        try {
+            const user = await User.findById(req.userId);
+            const products = await Product.find({ _id: { $in: user.favoritedBy } }).select('-image').lean();
+            const parser = new Parser();
+            const csvData = parser.parse(products);
+            res.header('Content-Type', 'text/csv');
+            res.attachment('my_favorites.csv');
+            res.send(csvData);
+        } catch (error) {
+            res.status(500).send({ message: error.message });
+        }
+    });
+
 };

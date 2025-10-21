@@ -10,14 +10,33 @@ const upload = require("multer")(); // 使用 multer 处理导入的文件
 module.exports = function (app) {
   // 导出用户
   app.get("/api/admin/export/users", [verifyToken], async (req, res) => {
-    const users = await User.find().lean();
+    const users = await User.find().select('-password').lean(); // 不导出密码
     const parser = new Parser();
     const csv = parser.parse(users);
     res.header("Content-Type", "text/csv");
-    res.attachment("users.csv");
+    res.attachment("all_users.csv");
     res.send(csv);
   });
 
+  app.get('/api/admin/export/products', [verifyToken], async (req, res) => {
+    // 使用 populate 获取 owner 的昵称
+    const products = await Product.find().populate('owner', 'nickname').select('-image').lean();
+    const parser = new Parser();
+    const csvData = parser.parse(products);
+    res.header('Content-Type', 'text/csv');
+    res.attachment('all_products.csv');
+    res.send(csvData);
+});
+
+app.get('/api/admin/export/orders', [verifyToken], async (req, res) => {
+    const orders = await Order.find().populate('seller', 'nickname').populate('product', 'title').lean();
+    const parser = new Parser();
+    const csvData = parser.parse(orders);
+    res.header('Content-Type', 'text/csv');
+    res.attachment('all_orders.csv');
+    res.send(csvData);
+});
+  
   // 导入商品
   app.post(
     "/api/admin/import/products",
