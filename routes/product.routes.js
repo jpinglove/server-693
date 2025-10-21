@@ -22,7 +22,7 @@ module.exports = function (app) {
     try {
       // .select('-image') 表示查询结果中不包含 image 字段
       console.log("[DEBUG] Product query:", JSON.stringify(query));
-      
+
       const products = await Product.find(query)
         .select("-image")
         .populate("owner", "nickname")
@@ -103,6 +103,9 @@ module.exports = function (app) {
             contentType: req.file.mimetype, // 文件类型
           },
         });
+        
+        console.log("[DEBUG] New Product:", JSON.stringify(product));
+
         await product.save();
         res.status(201).send({ message: "Product created successfully." });
       } catch (error) {
