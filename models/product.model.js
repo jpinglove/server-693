@@ -11,7 +11,7 @@ const ProductSchema = new mongoose.Schema(
     campus: { type: String, required: true }, // e.g., '主校区', '南校区'
     condition: {
       type: String,
-      enum: ["全新", "九成新", "八成新", "轻微瑕疵"],
+      // enum: ["全新", "九成新", "八成新", "轻微瑕疵"],
       required: true,
     },
 
