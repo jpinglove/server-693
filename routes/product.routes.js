@@ -106,8 +106,6 @@ module.exports = function (app) {
           },
         });
         
-        console.log("[DEBUG] New Product:", JSON.stringify(product));
-
         await product.save();
         res.status(201).send({ message: "Product created successfully." });
       } catch (error) {
