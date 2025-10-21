@@ -1,3 +1,4 @@
+const { Parser } = require("json2csv");
 const multer = require("multer");
 const { verifyToken } = require("../middleware/authJwt");
 const Product = require("../models/product.model");
