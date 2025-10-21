@@ -14,6 +14,11 @@ module.exports = function (app) {
     const opts = { fields };
     const parser = new Parser(opts);
     const users = await User.find().select('-password').lean(); // 不导出密码
+
+    if (users.length === 0) {
+        return res.status(200).json({ message: 'No data to export.' });
+    }
+
     const csv = parser.parse(users);
     res.header("Content-Type", "text/csv");
     res.attachment("all_users.csv");
@@ -37,6 +42,10 @@ module.exports = function (app) {
     const parser = new Parser(opts);
     // 使用 populate 获取 owner 的昵称
     const products = await Product.find().populate('owner', 'nickname').select('-image').lean();
+    if (products.length === 0) {
+        return res.status(200).json({ message: 'No data to export.' });
+    }
+    
     const csvData = parser.parse(products);
     res.header('Content-Type', 'text/csv');
     res.attachment('all_products.csv');
@@ -54,6 +63,9 @@ module.exports = function (app) {
     const opts = { fields };
     const parser = new Parser(opts);
     const orders = await Order.find().populate('seller', 'nickname').populate('product', 'title').lean();
+    if (orders.length === 0) {
+        return res.status(200).json({ message: 'No data to export.' });
+    }
     const csvData = parser.parse(orders);
     res.header('Content-Type', 'text/csv');
     res.attachment('all_orders.csv');

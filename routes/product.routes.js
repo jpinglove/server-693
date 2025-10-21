@@ -339,9 +339,26 @@ module.exports = function (app) {
 
     // 普通用户导出自己的发布列表
     app.get('/api/user/export/publications', [verifyToken], async (req, res) => {
-        try {
+      try {
+            const fields = [
+              { label: '商品ID', value: '_id' },
+              { label: '标题', value: 'title' },
+              { label: '价格', value: 'price' },
+              { label: '分类', value: 'category' },
+              { label: '校区', value: 'campus' },
+              { label: '新旧程度', value: 'condition' },
+              { label: '状态', value: 'status' },
+              { label: '浏览量', value: 'viewCount' },
+              { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+              { label: '发布时间', value: 'createdAt' }
+            ];
+            const opts = { fields };
+            const parser = new Parser(opts);
+        
             const products = await Product.find({ owner: req.userId }).select('-image').lean();
-            const parser = new Parser();
+            if (products.length === 0) {
+                return res.status(200).json({ message: 'No data to export.' });
+            }
             const csvData = parser.parse(products);
             res.header('Content-Type', 'text/csv');
             res.attachment('my_publications.csv');
@@ -355,7 +372,18 @@ module.exports = function (app) {
     app.get('/api/user/export/orders', [verifyToken], async (req, res) => {
         try {
             const orders = await Order.find({ seller: req.userId }).populate('product', 'title').lean();
-            const parser = new Parser();
+            const fields = [
+                  { label: '订单ID', value: '_id' },
+                  { label: '商品标题', value: 'product.title' },
+                  { label: '成交价格', value: 'price' },
+                  { label: '卖家', value: 'seller.nickname' },
+                  { label: '成交日期', value: 'transactionDate' }
+              ];
+            const opts = { fields };
+            const parser = new Parser(opts);
+            if (orders.length === 0) {
+              return res.status(200).json({ message: 'No data to export.' });
+            }
             const csvData = parser.parse(orders);
             res.header('Content-Type', 'text/csv');
             res.attachment('my_orders.csv');
@@ -369,8 +397,24 @@ module.exports = function (app) {
     app.get('/api/user/export/favorites', [verifyToken], async (req, res) => {
         try {
             const user = await User.findById(req.userId);
+            const fields = [
+              { label: '商品ID', value: '_id' },
+              { label: '标题', value: 'title' },
+              { label: '价格', value: 'price' },
+              { label: '分类', value: 'category' },
+              { label: '校区', value: 'campus' },
+              { label: '新旧程度', value: 'condition' },
+              { label: '状态', value: 'status' },
+              { label: '浏览量', value: 'viewCount' },
+              { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+              { label: '发布时间', value: 'createdAt' }
+            ];
+            const opts = { fields };
+            const parser = new Parser(opts);
             const products = await Product.find({ _id: { $in: user.favoritedBy } }).select('-image').lean();
-            const parser = new Parser();
+            if (products.length === 0) {
+              return res.status(200).json({ message: 'No data to export.' });
+            }
             const csvData = parser.parse(products);
             res.header('Content-Type', 'text/csv');
             res.attachment('my_favorites.csv');
