@@ -363,7 +363,9 @@ module.exports = function (app) {
             res.header('Content-Type', 'text/csv');
             res.attachment('my_publications.csv');
             res.send(csvData);
-        } catch (error) {
+      } catch (error) {
+        console.error(error);
+        
             res.status(500).send({ message: error.message });
         }
     });
