@@ -41,7 +41,10 @@ module.exports = function (app) {
     const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     // 使用 populate 获取 owner 的昵称
-    const products = await Product.find().populate('owner', 'nickname').select('-image').lean();
+    const products = await Product.find()..populate({
+                    path: 'owner',
+                    select: 'nickname'
+                }).select('-image').lean();
     if (products.length === 0) {
         return res.status(200).json({ message: 'No data to export.' });
     }
@@ -62,7 +65,10 @@ module.exports = function (app) {
     ];
     const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
-    const orders = await Order.find().populate('seller', 'nickname').populate('product', 'title').lean();
+    const orders = await Order.find().populate({
+                    path: 'seller',
+                    select: 'nickname'
+                }).populate('product', 'title').lean();
     if (orders.length === 0) {
         return res.status(200).json({ message: 'No data to export.' });
     }

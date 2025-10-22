@@ -341,7 +341,10 @@ module.exports = function (app) {
             const opts = { fields, withBOM: true};
             const parser = new Parser(opts);
         
-            const products = await Product.find({ owner: req.userId }).select('-image').lean();
+            const products = await Product.find({ owner: req.userId }).populate({
+                    path: 'owner',
+                    select: 'nickname'
+                }).select('-image').lean();
             if (products.length === 0) {
                 return res.status(200).json({ message: 'No data to export.' });
             }
@@ -399,7 +402,10 @@ module.exports = function (app) {
             ];
             const opts = { fields, withBOM: true };
             const parser = new Parser(opts);
-            const products = await Product.find({ favoritedBy: req.userId }).select('-image').lean();
+            const products = await Product.find({ favoritedBy: req.userId }).populate({
+                    path: 'owner',
+                    select: 'nickname'
+                }).select('-image').lean();
             if (products.length === 0) {
               return res.status(200).json({ message: 'No data to export.' });
             }
