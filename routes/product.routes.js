@@ -10,31 +10,6 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 module.exports = function (app) {
-  // 获取所有商品
-  // 不再返回image数据，因为列表页不需要那么大的数据量
-  /*
-  app.get("/api/products", async (req, res) => {
-    const { category, search } = req.query;
-    // 默认查询条件增加了 status: 'selling'
-    let query = { status: "selling" };
-    if (category) query.category = category;
-    if (search) query.title = { $regex: search, $options: "i" };
-
-    try {
-      // .select('-image') 表示查询结果中不包含 image 字段
-      console.log("[DEBUG] Product query:", JSON.stringify(query));
-
-      const products = await Product.find(query)
-        .select("-image")
-        .populate("owner", "nickname")
-        .sort({ createdAt: -1 });
-      res.status(200).send(products);
-    } catch (error) {
-      res.status(500).send({ message: error.message });
-    }
-  });
-  */
-
   // 获取单个商品详情 - 同样不直接返回图片数据
   app.get("/api/products/:id", async (req, res) => {
     try {
@@ -270,9 +245,6 @@ module.exports = function (app) {
         .populate("owner", "nickname")
         .sort(sort);
       
-      console.log("[DEBUG] Product query:", query, "Sort:", sort);
-      console.log("[DEBUG] Product response:", JSON.stringify(products));
-
       res.status(200).send(products);
     } catch (error) {
       res.status(500).send({ message: error.message });
@@ -352,6 +324,8 @@ module.exports = function (app) {
     // 普通用户导出自己的发布列表
     app.get('/api/user/export/publications', [verifyToken], async (req, res) => {
       try {
+        console.log('[DEBUG] Exporting publications for user:', req.userId);
+        
             const fields = [
               { label: '商品ID', value: '_id' },
               { label: '标题', value: 'title' },
