@@ -41,7 +41,7 @@ module.exports = function (app) {
     const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     // 使用 populate 获取 owner 的昵称
-    const products = await Product.find()..populate({
+    const products = await Product.find().populate({
                     path: 'owner',
                     select: 'nickname'
                 }).select('-image').lean();
