@@ -399,7 +399,7 @@ module.exports = function (app) {
             ];
             const opts = { fields, withBOM: true };
             const parser = new Parser(opts);
-            const products = await Product.find({ _id: { $in: user.favoritedBy } }).select('-image').lean();
+            const products = await Product.find({ favoritedBy: req.userId }).select('-image').lean();
             if (products.length === 0) {
               return res.status(200).json({ message: 'No data to export.' });
             }
