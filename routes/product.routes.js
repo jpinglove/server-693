@@ -12,6 +12,7 @@ const upload = multer({ storage: storage });
 module.exports = function (app) {
   // 获取所有商品
   // 不再返回image数据，因为列表页不需要那么大的数据量
+  /*
   app.get("/api/products", async (req, res) => {
     const { category, search } = req.query;
     // 默认查询条件增加了 status: 'selling'
@@ -32,6 +33,7 @@ module.exports = function (app) {
       res.status(500).send({ message: error.message });
     }
   });
+  */
 
   // 获取单个商品详情 - 同样不直接返回图片数据
   app.get("/api/products/:id", async (req, res) => {
