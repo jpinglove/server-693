@@ -267,6 +267,10 @@ module.exports = function (app) {
         .select("-image")
         .populate("owner", "nickname")
         .sort(sort);
+      
+      console.log("[DEBUG] Product query:", query, "Sort:", sort);
+      console.log("[DEBUG] Product response:", JSON.stringify(products));
+
       res.status(200).send(products);
     } catch (error) {
       res.status(500).send({ message: error.message });
