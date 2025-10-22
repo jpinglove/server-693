@@ -338,7 +338,7 @@ module.exports = function (app) {
               { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
               { label: '发布时间', value: 'createdAt' }
             ];
-            const opts = { fields };
+            const opts = { fields, withBOM: true};
             const parser = new Parser(opts);
         
             const products = await Product.find({ owner: req.userId }).select('-image').lean();
@@ -367,7 +367,7 @@ module.exports = function (app) {
                   { label: '卖家', value: 'seller.nickname' },
                   { label: '成交日期', value: 'transactionDate' }
               ];
-            const opts = { fields };
+            const opts = { fields, withBOM: true };
             const parser = new Parser(opts);
             if (orders.length === 0) {
               return res.status(200).json({ message: 'No data to export.' });
@@ -397,7 +397,7 @@ module.exports = function (app) {
               { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
               { label: '发布时间', value: 'createdAt' }
             ];
-            const opts = { fields };
+            const opts = { fields, withBOM: true };
             const parser = new Parser(opts);
             const products = await Product.find({ _id: { $in: user.favoritedBy } }).select('-image').lean();
             if (products.length === 0) {

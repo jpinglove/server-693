@@ -11,7 +11,7 @@ module.exports = function (app) {
   // 导出用户
   app.get("/api/admin/export/users", [verifyToken], async (req, res) => {
     const fields = ['_id', 'studentId', 'nickname', 'isAdmin', 'reputation.good', 'reputation.neutral', 'reputation.bad', 'createdAt'];
-    const opts = { fields };
+    const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     const users = await User.find().select('-password').lean(); // 不导出密码
 
@@ -38,7 +38,7 @@ module.exports = function (app) {
         { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
         { label: '发布时间', value: 'createdAt' }
     ];
-    const opts = { fields };
+    const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     // 使用 populate 获取 owner 的昵称
     const products = await Product.find().populate('owner', 'nickname').select('-image').lean();
@@ -60,7 +60,7 @@ module.exports = function (app) {
         { label: '卖家', value: 'seller.nickname' },
         { label: '成交日期', value: 'transactionDate' }
     ];
-    const opts = { fields };
+    const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     const orders = await Order.find().populate('seller', 'nickname').populate('product', 'title').lean();
     if (orders.length === 0) {
