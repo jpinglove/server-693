@@ -300,6 +300,43 @@ module.exports = function (app) {
     }
   });
 
+  // 卖出商品并创建订单
+  app.post("/api/products/:id/sell", [verifyToken], async (req, res) => {
+      try {
+          const product = await Product.findById(req.params.id);
+          if (!product) {
+              return res.status(404).send({ message: "Product not found." });
+          }
+          // 验证当前用户是否是商品所有者
+          if (product.owner.toString() !== req.userId) {
+              return res.status(403).send({ message: "You are not the owner of this product." });
+          }
+          // 防止重复卖出
+          if (product.status === 'sold') {
+              return res.status(400).send({ message: "This product has already been sold." });
+          }
+
+          // 商品状态更新为 "sold"
+          product.status = "sold";
+          await product.save();
+
+          // 创建订单交易记录
+          const order = new Order({
+              product: product._id,
+              seller: product.owner,
+              // userId: req.userId,
+              price: product.price,
+              // transactionDate 字段使用默认的当前时间
+          });
+          await order.save();
+
+          res.status(200).send({ message: "Product marked as sold and order created successfully." });
+
+      } catch (error) {
+          res.status(500).send({ message: error.message });
+    }
+  
+
   // 获取用户订单记录
   app.get("/api/user/orders", [verifyToken], async (req, res) => {
     try {

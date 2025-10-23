@@ -12,6 +12,10 @@ const OrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // userId: {
+    //   type: String,
+    //   required: true,
+    // },
     // 简化，假设交易在线下完成，所以没有买家信息
     transactionDate: {
       type: Date,
