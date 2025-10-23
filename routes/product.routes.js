@@ -403,7 +403,9 @@ module.exports = function (app) {
     // 普通用户导出自己的订单列表
     app.get('/api/user/export/orders', [verifyToken], async (req, res) => {
       try {
-        const orders = await Order.find({ seller: req.userId }).populate('product', 'title').lean();
+        const orders = await Order.find({ seller: req.userId })
+          .populate('seller', 'nickname')
+          .populate('product', 'title').lean();
         const fields = [
           { label: '订单ID', value: '_id' },
           { label: '商品标题', value: 'product.title' },
