@@ -88,8 +88,12 @@ module.exports = function (app) {
       const bufferStream = new stream.PassThrough();
       bufferStream.end(req.file.buffer);
 
+      const csvOptions = {
+            bom: true,
+            separator: ';'
+        };
 
-        bufferStream.pipe(csv())
+        bufferStream.pipe(csv(csvOptions))
           .on('data', (data) => {
             console.log('Parsed CSV row keys:', Object.keys(data));
             results.push(data)
