@@ -25,7 +25,7 @@ module.exports = function (app) {
                     select: 'nickname'
                 },
                 options: {
-                    sort: { 'createdAt': 1 } // 按创建时间降序排列
+                    sort: { 'createdAt': -1 } // 按创建时间降序排列
                 }
         });
       if (!product) {
@@ -552,5 +552,50 @@ module.exports = function (app) {
           });
       }
     );
+
+  
+    // 对已售出商品的卖家评价
+    app.post('/api/products/:id/evaluate', [verifyToken], async (req, res) => {
+        try {
+            const { type } = req.body; // 'good', 'neutral', 'bad'
+            const productId = req.params.id;
+            const evaluatorId = req.userId; // 当前评价者ID
+
+            // 评价类型是否合法
+            if (!['good', 'neutral', 'bad'].includes(type)) {
+                return res.status(400).send({ message: '无效评价类型.' });
+            }
+
+            const product = await Product.findById(productId);
+            if (!product) {
+                return res.status(404).send({ message: '商品不存在.' });
+            }
+
+            if (product.status !== 'sold') {
+                return res.status(400).send({ message: '只能对已售出商品进行评价.' });
+            }
+            if (product.owner.toString() === evaluatorId) {
+                return res.status(403).send({ message: '不能给自己评价.' });
+            }
+            if (product.evaluatedBy.includes(evaluatorId)) {
+                return res.status(400).send({ message: '你已经评价过此商品.' });
+            }
+
+            // 更新卖家的信誉计数,$inc 原子操作
+            const updateQuery = { $inc: { [`reputation.${type}`]: 1 } };
+            await User.findByIdAndUpdate(product.owner, updateQuery);
+
+            // 将评价者ID记录到商品中
+            product.evaluatedBy.push(evaluatorId);
+            await product.save();
+
+            res.status(200).send({ message: '评价成功提交.' });
+
+        } catch (error) {
+            console.error('[ERROR]', error);
+            res.status(500).send({ message: 'An internal server error occurred.' });
+        }
+    });
+  
   };
 

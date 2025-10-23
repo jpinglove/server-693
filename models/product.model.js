@@ -49,6 +49,11 @@ const ProductSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    evaluatedBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+
   },
   { timestamps: true }
 );
