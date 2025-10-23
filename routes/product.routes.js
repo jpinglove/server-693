@@ -302,161 +302,161 @@ module.exports = function (app) {
 
   // 卖出商品并创建订单
   app.post("/api/products/:id/sell", [verifyToken], async (req, res) => {
-      try {
-          const product = await Product.findById(req.params.id);
-          if (!product) {
-              return res.status(404).send({ message: "Product not found." });
-          }
-          // 验证当前用户是否是商品所有者
-          if (product.owner.toString() !== req.userId) {
-              return res.status(403).send({ message: "You are not the owner of this product." });
-          }
-          // 防止重复卖出
-          if (product.status === 'sold') {
-              return res.status(400).send({ message: "This product has already been sold." });
-          }
+    try {
+      const product = await Product.findById(req.params.id);
+      if (!product) {
+        return res.status(404).send({ message: "Product not found." });
+      }
+      // 验证当前用户是否是商品所有者
+      if (product.owner.toString() !== req.userId) {
+        return res.status(403).send({ message: "You are not the owner of this product." });
+      }
+      // 防止重复卖出
+      if (product.status === 'sold') {
+        return res.status(400).send({ message: "This product has already been sold." });
+      }
 
-          // 商品状态更新为 "sold"
-          product.status = "sold";
-          await product.save();
+      // 商品状态更新为 "sold"
+      product.status = "sold";
+      await product.save();
 
-          // 创建订单交易记录
-          const order = new Order({
-              product: product._id,
-              seller: product.owner,
-              // userId: req.userId,
-              price: product.price,
-              // transactionDate 字段使用默认的当前时间
-          });
-          await order.save();
+      // 创建订单交易记录
+      const order = new Order({
+        product: product._id,
+        seller: product.owner,
+        // userId: req.userId,
+        price: product.price,
+        // transactionDate 字段使用默认的当前时间
+      });
+      await order.save();
 
-          res.status(200).send({ message: "Product marked as sold and order created successfully." });
+      res.status(200).send({ message: "Product marked as sold and order created successfully." });
 
-      } catch (error) {
-          res.status(500).send({ message: error.message });
+    } catch (error) {
+      res.status(500).send({ message: error.message });
     }
   
 
-  // 获取用户订单记录
-  app.get("/api/user/orders", [verifyToken], async (req, res) => {
-    try {
-      const orders = await Order.find({ seller: req.userId }).populate(
-        "product"
-      );
-      res.status(200).send(orders);
-    } catch (error) {
-      res.status(500).send({ message: error.message });
-    }
-  });
+    // 获取用户订单记录
+    app.get("/api/user/orders", [verifyToken], async (req, res) => {
+      try {
+        const orders = await Order.find({ seller: req.userId }).populate(
+          "product"
+        );
+        res.status(200).send(orders);
+      } catch (error) {
+        res.status(500).send({ message: error.message });
+      }
+    });
 
-  // 获取用户浏览记录
-  app.get("/api/user/view-history", [verifyToken], async (req, res) => {
-    try {
-      const user = await User.findById(req.userId).populate({
-        path: "viewHistory",
-        select: "-image", // 同样不在列表页加载图片
-      });
-      res.status(200).send(user.viewHistory);
-    } catch (error) {
-      res.status(500).send({ message: error.message });
-    }
-  });
+    // 获取用户浏览记录
+    app.get("/api/user/view-history", [verifyToken], async (req, res) => {
+      try {
+        const user = await User.findById(req.userId).populate({
+          path: "viewHistory",
+          select: "-image", // 同样不在列表页加载图片
+        });
+        res.status(200).send(user.viewHistory);
+      } catch (error) {
+        res.status(500).send({ message: error.message });
+      }
+    });
 
     // 普通用户导出自己的发布列表
     app.get('/api/user/export/publications', [verifyToken], async (req, res) => {
       try {
         console.log('[DEBUG] Exporting publications for user:', req.userId);
         
-            const fields = [
-              { label: '商品ID', value: '_id' },
-              { label: '标题', value: 'title' },
-              { label: '价格', value: 'price' },
-              { label: '分类', value: 'category' },
-              { label: '校区', value: 'campus' },
-              { label: '新旧程度', value: 'condition' },
-              { label: '状态', value: 'status' },
-              { label: '浏览量', value: 'viewCount' },
-              { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
-              { label: '发布时间', value: 'createdAt' }
-            ];
-            const opts = { fields, withBOM: true};
-            const parser = new Parser(opts);
+        const fields = [
+          { label: '商品ID', value: '_id' },
+          { label: '标题', value: 'title' },
+          { label: '价格', value: 'price' },
+          { label: '分类', value: 'category' },
+          { label: '校区', value: 'campus' },
+          { label: '新旧程度', value: 'condition' },
+          { label: '状态', value: 'status' },
+          { label: '浏览量', value: 'viewCount' },
+          { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+          { label: '发布时间', value: 'createdAt' }
+        ];
+        const opts = { fields, withBOM: true };
+        const parser = new Parser(opts);
         
-            const products = await Product.find({ owner: req.userId }).populate({
-                    path: 'owner',
-                    select: 'nickname'
-                }).select('-image').lean();
-            if (products.length === 0) {
-                return res.status(200).json({ message: '没有数据可导出.' });
-            }
-            const csvData = parser.parse(products);
-            res.header('Content-Type', 'text/csv');
-            res.attachment('my_publications.csv');
-            res.send(csvData);
+        const products = await Product.find({ owner: req.userId }).populate({
+          path: 'owner',
+          select: 'nickname'
+        }).select('-image').lean();
+        if (products.length === 0) {
+          return res.status(200).json({ message: '没有数据可导出.' });
+        }
+        const csvData = parser.parse(products);
+        res.header('Content-Type', 'text/csv');
+        res.attachment('my_publications.csv');
+        res.send(csvData);
       } catch (error) {
         console.error(error);
         
-            res.status(500).send({ message: error.message });
-        }
+        res.status(500).send({ message: error.message });
+      }
     });
 
     // 普通用户导出自己的订单列表
     app.get('/api/user/export/orders', [verifyToken], async (req, res) => {
-        try {
-            const orders = await Order.find({ seller: req.userId }).populate('product', 'title').lean();
-            const fields = [
-                  { label: '订单ID', value: '_id' },
-                  { label: '商品标题', value: 'product.title' },
-                  { label: '成交价格', value: 'price' },
-                  { label: '卖家', value: 'seller.nickname' },
-                  { label: '成交日期', value: 'transactionDate' }
-              ];
-            const opts = { fields, withBOM: true };
-            const parser = new Parser(opts);
-            if (orders.length === 0) {
-              return res.status(200).json({ message: '没有数据可导出.' });
-            }
-            const csvData = parser.parse(orders);
-            res.header('Content-Type', 'text/csv');
-            res.attachment('my_orders.csv');
-            res.send(csvData);
-        } catch (error) {
-            res.status(500).send({ message: error.message });
+      try {
+        const orders = await Order.find({ seller: req.userId }).populate('product', 'title').lean();
+        const fields = [
+          { label: '订单ID', value: '_id' },
+          { label: '商品标题', value: 'product.title' },
+          { label: '成交价格', value: 'price' },
+          { label: '卖家', value: 'seller.nickname' },
+          { label: '成交日期', value: 'transactionDate' }
+        ];
+        const opts = { fields, withBOM: true };
+        const parser = new Parser(opts);
+        if (orders.length === 0) {
+          return res.status(200).json({ message: '没有数据可导出.' });
         }
+        const csvData = parser.parse(orders);
+        res.header('Content-Type', 'text/csv');
+        res.attachment('my_orders.csv');
+        res.send(csvData);
+      } catch (error) {
+        res.status(500).send({ message: error.message });
+      }
     });
 
     // 普通用户导出自己的收藏列表
     app.get('/api/user/export/favorites', [verifyToken], async (req, res) => {
-        try {
-            const user = await User.findById(req.userId);
-            const fields = [
-              { label: '商品ID', value: '_id' },
-              { label: '标题', value: 'title' },
-              { label: '价格', value: 'price' },
-              { label: '分类', value: 'category' },
-              { label: '校区', value: 'campus' },
-              { label: '新旧程度', value: 'condition' },
-              { label: '状态', value: 'status' },
-              { label: '浏览量', value: 'viewCount' },
-              { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
-              { label: '发布时间', value: 'createdAt' }
-            ];
-            const opts = { fields, withBOM: true };
-            const parser = new Parser(opts);
-            const products = await Product.find({ favoritedBy: req.userId }).populate({
-                    path: 'owner',
-                    select: 'nickname'
-                }).select('-image').lean();
-            if (products.length === 0) {
-              return res.status(200).json({ message: 'No data to export.' });
-            }
-            const csvData = parser.parse(products);
-            res.header('Content-Type', 'text/csv');
-            res.attachment('my_favorites.csv');
-            res.send(csvData);
-        } catch (error) {
-            res.status(500).send({ message: error.message });
+      try {
+        const user = await User.findById(req.userId);
+        const fields = [
+          { label: '商品ID', value: '_id' },
+          { label: '标题', value: 'title' },
+          { label: '价格', value: 'price' },
+          { label: '分类', value: 'category' },
+          { label: '校区', value: 'campus' },
+          { label: '新旧程度', value: 'condition' },
+          { label: '状态', value: 'status' },
+          { label: '浏览量', value: 'viewCount' },
+          { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+          { label: '发布时间', value: 'createdAt' }
+        ];
+        const opts = { fields, withBOM: true };
+        const parser = new Parser(opts);
+        const products = await Product.find({ favoritedBy: req.userId }).populate({
+          path: 'owner',
+          select: 'nickname'
+        }).select('-image').lean();
+        if (products.length === 0) {
+          return res.status(200).json({ message: 'No data to export.' });
         }
+        const csvData = parser.parse(products);
+        res.header('Content-Type', 'text/csv');
+        res.attachment('my_favorites.csv');
+        res.send(csvData);
+      } catch (error) {
+        res.status(500).send({ message: error.message });
+      }
     });
 
   
@@ -470,73 +470,72 @@ module.exports = function (app) {
         bufferStream.end(req.file.buffer);
 
         const csvOptions = {
-              bom: true,
-              mapHeaders: ({ header, index }) => header.trim().replace(/\uFEFF/g, '')
-            };
+          bom: true,
+          mapHeaders: ({ header, index }) => header.trim().replace(/\uFEFF/g, '')
+        };
               
         bufferStream.pipe(csv(csvOptions))
-            .on('data', (data) => {
-              console.log('检查导入数据字段:', Object.keys(data));
-              results.push(data)
-            })
-            .on('end', async () => {
-                let validProductsToInsert = [];
-                let errorLogs = [];
-                let successCount = 0;
-                let failureCount = 0;
-                const requiredFields = ['title', 'price', 'category', 'campus', 'condition'];
+          .on('data', (data) => {
+            console.log('检查导入数据字段:', Object.keys(data));
+            results.push(data)
+          })
+          .on('end', async () => {
+            let validProductsToInsert = [];
+            let errorLogs = [];
+            let successCount = 0;
+            let failureCount = 0;
+            const requiredFields = ['title', 'price', 'category', 'campus', 'condition'];
 
-                // 使用 循环来处理 async/await
-                for (const [index, row] of results.entries()) {
-                    const lineNumber = index + 2; // CSV行号从2开始 , 1是表头
+            // 使用 循环来处理 async/await
+            for (const [index, row] of results.entries()) {
+              const lineNumber = index + 2; // CSV行号从2开始 , 1是表头
 
-                    // 字段非空校验
-                    let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
-                    if (missingField) {
-                        errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
-                        failureCount++;
-                        continue; // 跳过此行
-                    }
+              // 字段非空校验
+              let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
+              if (missingField) {
+                errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
+                failureCount++;
+                continue; // 跳过此行
+              }
 
-                    try {
-                        // 准备插入的数据
-                        validProductsToInsert.push({
-                            title: row.title,
-                            description: row.description || '', // description 可选
-                            price: Number(row.price),
-                            category: row.category,
-                            campus: row.campus,
-                            condition: row.condition,
-                            owner: req.userId, // 使用查找到的用户的 id 作这 owner
-                            // 导入的商品没有图片，后续让用户自己编辑添加
-                        });
-                        successCount++;
-
-                    } catch (dbError) {
-                        errorLogs.push(`Line ${lineNumber}: Database error - ${dbError.message}`);
-                        failureCount++;
-                    }
-                }
-
-                // 插入所有有效数据
-                if (validProductsToInsert.length > 0) {
-                    try {
-                        await Product.insertMany(validProductsToInsert, { ordered: false });
-                    } catch (insertError) {
-                        console.error("insert error:", insertError);
-                    }
-                }
-                
-                // 返回详细的导入报告
-                res.status(200).send({
-                    message: `Import process finished.`,
-                    successCount: successCount,
-                    failureCount: failureCount,
-                    errors: errorLogs
+              try {
+                // 准备插入的数据
+                validProductsToInsert.push({
+                  title: row.title,
+                  description: row.description || '', // description 可选
+                  price: Number(row.price),
+                  category: row.category,
+                  campus: row.campus,
+                  condition: row.condition,
+                  owner: req.userId, // 使用查找到的用户的 id 作这 owner
+                  // 导入的商品没有图片，后续让用户自己编辑添加
                 });
-            });
-    }
-  );
-  
+                successCount++;
 
-};
+              } catch (dbError) {
+                errorLogs.push(`Line ${lineNumber}: Database error - ${dbError.message}`);
+                failureCount++;
+              }
+            }
+
+            // 插入所有有效数据
+            if (validProductsToInsert.length > 0) {
+              try {
+                await Product.insertMany(validProductsToInsert, { ordered: false });
+              } catch (insertError) {
+                console.error("insert error:", insertError);
+              }
+            }
+                
+            // 返回详细的导入报告
+            res.status(200).send({
+              message: `Import process finished.`,
+              successCount: successCount,
+              failureCount: failureCount,
+              errors: errorLogs
+            });
+          });
+      }
+    );
+  };
+
