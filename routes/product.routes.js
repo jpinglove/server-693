@@ -25,7 +25,7 @@ module.exports = function (app) {
                     select: 'nickname'
                 },
                 options: {
-                    sort: { 'createdAt': -1 } // 按创建时间降序排列
+                    sort: { 'createdAt': 1 } // 按创建时间降序排列
                 }
         });
       if (!product) {
