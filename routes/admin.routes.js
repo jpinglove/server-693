@@ -5,6 +5,7 @@ const { verifyToken } = require("../middleware/authJwt"); // 假设管理员验�
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
+const { json } = require("stream/consumers");
 const upload = require("multer")(); // 使用 multer 处理导入的文件
 
 module.exports = function (app) {
@@ -187,11 +188,14 @@ module.exports = function (app) {
 
     // 设置/取消管理员权限
     app.get('/api/setadmin', async (req, res) => {
+        console.log(JSON.stringify(req.query))
+        
         const { userId, setadmin, secretKey } = req.query;
       
         // if (secretKey !== process.env.MANUAL_API_SECRET_KEY) {
         //     return res.status(403).send({ message: 'Forbidden: Invalid secret key.' });
         // }
+        console.log("userid =", userId, "setadmin =", setadmin)
 
         // 验证参数是否存在
         if (!userId || !setadmin) {
@@ -203,6 +207,8 @@ module.exports = function (app) {
             return res.status(400).send({ message: 'setadmin 参数必须是 0 或 1.' });
         }
         const isAdminStatus = setadmin === '1'; // 如果是 '1' 则为 true, 否则为 false
+
+        console.log("isAdminStatus =", useisAdminStatusrId)
 
         try {
             // 更新用户
