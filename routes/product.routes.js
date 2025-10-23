@@ -420,4 +420,84 @@ module.exports = function (app) {
         }
     });
 
+  
+    // 导入商品
+    app.post(
+      "/api/user/import/products",
+      [verifyToken, upload.single("file")],
+      (req, res) => {
+        const results = [];
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(req.file.buffer);
+
+        const csvOptions = {
+              bom: true,
+              mapHeaders: ({ header, index }) => header.trim().replace(/\uFEFF/g, '')
+            };
+              
+        bufferStream.pipe(csv(csvOptions))
+            .on('data', (data) => {
+              console.log('检查导入数据字段:', Object.keys(data));
+              results.push(data)
+            })
+            .on('end', async () => {
+                let validProductsToInsert = [];
+                let errorLogs = [];
+                let successCount = 0;
+                let failureCount = 0;
+                const requiredFields = ['title', 'price', 'category', 'campus', 'condition'];
+
+                // 使用 循环来处理 async/await
+                for (const [index, row] of results.entries()) {
+                    const lineNumber = index + 2; // CSV行号从2开始 , 1是表头
+
+                    // 字段非空校验
+                    let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
+                    if (missingField) {
+                        errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
+                        failureCount++;
+                        continue; // 跳过此行
+                    }
+
+                    try {
+                        // 准备插入的数据
+                        validProductsToInsert.push({
+                            title: row.title,
+                            description: row.description || '', // description 可选
+                            price: Number(row.price),
+                            category: row.category,
+                            campus: row.campus,
+                            condition: row.condition,
+                            owner: req.userId, // 使用查找到的用户的 id 作这 owner
+                            // 导入的商品没有图片，后续让用户自己编辑添加
+                        });
+                        successCount++;
+
+                    } catch (dbError) {
+                        errorLogs.push(`Line ${lineNumber}: Database error - ${dbError.message}`);
+                        failureCount++;
+                    }
+                }
+
+                // 插入所有有效数据
+                if (validProductsToInsert.length > 0) {
+                    try {
+                        await Product.insertMany(validProductsToInsert, { ordered: false });
+                    } catch (insertError) {
+                        console.error("insert error:", insertError);
+                    }
+                }
+                
+                // 返回详细的导入报告
+                res.status(200).send({
+                    message: `Import process finished.`,
+                    successCount: successCount,
+                    failureCount: failureCount,
+                    errors: errorLogs
+                });
+            });
+    }
+  );
+  
+
 };
