@@ -208,7 +208,7 @@ module.exports = function (app) {
         }
         const isAdminStatus = setadmin === '1'; // 如果是 '1' 则为 true, 否则为 false
 
-        console.log("isAdminStatus =", useisAdminStatusrId)
+        console.log("isAdminStatus =", isAdminStatus)
 
         try {
             // 更新用户
