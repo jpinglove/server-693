@@ -1,7 +1,7 @@
 const { Parser } = require("json2csv");
 const csv = require("csv-parser");
 const stream = require("stream");
-const { verifyToken } = require("../middleware/authJwt"); // 假设 管理员验证中间件 isAdmin
+const { verifyToken } = require("../middleware/authJwt"); // 假设管理员验证为 isAdmin
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
@@ -16,7 +16,7 @@ module.exports = function (app) {
     const users = await User.find().select('-password').lean(); // 不导出密码
 
     if (users.length === 0) {
-        return res.status(200).json({ message: 'No data to export.' });
+        return res.status(200).json({ message: '没有数据可导出.' });
     }
 
     const csv = parser.parse(users);
@@ -35,11 +35,12 @@ module.exports = function (app) {
         { label: '新旧程度', value: 'condition' },
         { label: '状态', value: 'status' },
         { label: '浏览量', value: 'viewCount' },
-        { label: '发布者', value: 'owner.nickname' }, // 支持嵌套路径
+        { label: '发布者', value: 'owner.nickname' },
         { label: '发布时间', value: 'createdAt' }
     ];
     const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
+
     // 使用 populate 获取 owner 的昵称
     const products = await Product.find().populate({
                     path: 'owner',
@@ -63,6 +64,8 @@ module.exports = function (app) {
         { label: '卖家', value: 'seller.nickname' },
         { label: '成交日期', value: 'transactionDate' }
     ];
+
+
     const opts = { fields, withBOM: true };
     const parser = new Parser(opts);
     const orders = await Order.find().populate({
@@ -70,7 +73,7 @@ module.exports = function (app) {
                     select: 'nickname'
                 }).populate('product', 'title').lean();
     if (orders.length === 0) {
-        return res.status(200).json({ message: 'No data to export.' });
+        return res.status(200).json({ message: '没有数据可导出.' });
     }
     const csvData = parser.parse(orders);
     res.header('Content-Type', 'text/csv');
@@ -90,22 +93,12 @@ module.exports = function (app) {
 
       const csvOptions = {
             bom: true,
-            // separator: ';'
             mapHeaders: ({ header, index }) => header.trim().replace(/\uFEFF/g, '')
           };
-      
-        let headersLogged = false; // 加一个标志位，只打印一次表头
-
-
+            
       bufferStream.pipe(csv(csvOptions))
-          .on('headers', (headers) => {
-                // 打印出 csv-parser 最终识别到的表头数组
-                console.log('--- CSV HEADERS DIAGNOSTIC ---');
-                console.log('Headers identified by parser:', headers);
-                console.log('--- END DIAGNOSTIC ---');
-            })
           .on('data', (data) => {
-            console.log('Parsed CSV row keys:', Object.keys(data));
+            console.log('检查导入数据字段:', Object.keys(data));
             results.push(data)
           })
             .on('end', async () => {
@@ -115,11 +108,11 @@ module.exports = function (app) {
                 let failureCount = 0;
                 const requiredFields = ['title', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
 
-                // 使用 for...of 循环来正确处理 async/await
+                // 使用 循环来处理 async/await
                 for (const [index, row] of results.entries()) {
-                    const lineNumber = index + 2; // CSV行号从2开始 (1是表头)
+                    const lineNumber = index + 2; // CSV行号从2开始 , 1是表头
 
-                    // 1. 字段非空校验
+                    // 字段非空校验
                     let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
                     if (missingField) {
                         errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
@@ -128,15 +121,15 @@ module.exports = function (app) {
                     }
 
                     try {
-                        // 2. 查找发布者
+                        // 查找发布者
                         const owner = await User.findOne({ studentId: row.ownerStudentId });
                         if (!owner) {
                             errorLogs.push(`Line ${lineNumber}: Owner with studentId "${row.ownerStudentId}" not found.`);
                             failureCount++;
-                            continue; // 跳过此行
+                            continue;
                         }
 
-                        // 3. 准备待插入的数据
+                        // 准备插入的数据
                         validProductsToInsert.push({
                             title: row.title,
                             description: row.description || '', // description 可选
@@ -144,8 +137,8 @@ module.exports = function (app) {
                             category: row.category,
                             campus: row.campus,
                             condition: row.condition,
-                            owner: owner._id, // 使用查找到的用户的 _id
-                            // 导入的商品没有图片，可以后续让用户自己编辑添加
+                            owner: owner._id, // 使用查找到的用户的 id 作这 owner
+                            // 导入的商品没有图片，后续让用户自己编辑添加
                         });
                         successCount++;
 
@@ -155,18 +148,16 @@ module.exports = function (app) {
                     }
                 }
 
-                // 4. 批量插入所有有效数据
+                // 插入所有有效数据
                 if (validProductsToInsert.length > 0) {
                     try {
-                        await Product.insertMany(validProductsToInsert, { ordered: false }); // ordered: false 允许部分成功
+                        await Product.insertMany(validProductsToInsert, { ordered: false });
                     } catch (insertError) {
-                        // insertMany 的错误比较复杂，这里简化处理
-                        console.error("Bulk insert error:", insertError);
-                        // 即使批量插入失败，也继续往下走，返回日志
+                        console.error("insert error:", insertError);
                     }
                 }
                 
-                // 5. 返回详细的导入报告
+                // 返回详细的导入报告
                 res.status(200).send({
                     message: `Import process finished.`,
                     successCount: successCount,
@@ -174,23 +165,6 @@ module.exports = function (app) {
                     errors: errorLogs
                 });
             });
-  
-      /*
-      bufferStream
-        .pipe(csv())
-        .on("data", (data) => results.push(data))
-        .on("end", async () => {
-          try {
-            // 假设CSV列名和Model字段名一致
-            await Product.insertMany(results);
-            res.status(201).send({
-              message: `${results.length} products imported successfully.`,
-            });
-          } catch (error) {
-            res.status(500).send({ message: error.message });
-          }
-        });
-      */
     }
   );
   
@@ -209,4 +183,58 @@ module.exports = function (app) {
     res.status(200).send(stats);
   });
 
+
+
+    // 设置/取消管理员权限
+    app.get('/api/setadmin', async (req, res) => {
+        const { userId, setadmin, secretKey } = req.query;
+      
+        // if (secretKey !== process.env.MANUAL_API_SECRET_KEY) {
+        //     return res.status(403).send({ message: 'Forbidden: Invalid secret key.' });
+        // }
+
+        // 验证参数是否存在
+        if (!userId || !setadmin) {
+            return res.status(400).send({ message: '缺少参数.' });
+        }
+
+        // 验证 setadmin '0' 或 '1'
+        if (setadmin !== '0' && setadmin !== '1') {
+            return res.status(400).send({ message: 'setadmin 参数必须是 0 或 1.' });
+        }
+        const isAdminStatus = setadmin === '1'; // 如果是 '1' 则为 true, 否则为 false
+
+        try {
+            // 更新用户
+            const updatedUser = await User.findByIdAndUpdate(
+                userId, // 要更新的文档的 _id
+                { $set: { isAdmin: isAdminStatus } }, // 更新的操作
+                { new: true }
+            );
+
+            // 检查用户是否存在
+            if (!updatedUser) {
+                return res.status(404).send({ message: `ID为 "${userId}" 用户的信息不存在.` });
+            }
+
+            // 返回成功响应
+            res.status(200).send({
+                message: '用户管理员权限设置成功.',
+                user: {
+                    _id: updatedUser._id,
+                    studentId: updatedUser.studentId,
+                    nickname: updatedUser.nickname,
+                    isAdmin: updatedUser.isAdmin
+                }
+            });
+
+        } catch (error) {
+            console.error('[ADMIN SET ERROR]', error);
+            if (error.name === 'CastError') {
+                return res.status(400).send({ message: `无效的 ID: "${userId}".` });
+            }
+            res.status(500).send({ message: '服务器内部错误.' });
+        }
+    });
+  
 };

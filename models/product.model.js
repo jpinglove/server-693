@@ -18,13 +18,13 @@ const ProductSchema = new mongoose.Schema(
     status: { type: String, enum: ["selling", "sold"], default: "selling" },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-    // 新增：用于存储图片的对象
+    // 用于存储图片的对象
     image: {
       data: Buffer, // 用于存储图片的二进制数据
       contentType: String, // 用于存储图片的MIME类型, e.g., 'image/png'
     },
 
-    // 商品状态字段，默认为 'selling'
+    // 商品状态，默认为 'selling'
     status: {
       type: String,
       enum: ["selling", "sold"], // 只能是这两个值之一

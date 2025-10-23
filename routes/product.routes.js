@@ -10,7 +10,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 module.exports = function (app) {
-  // 获取单个商品详情 - 同样不直接返回图片数据
+  // 获取单个商品详情
   app.get("/api/products/:id", async (req, res) => {
     try {
       const product = await Product.findById(req.params.id)
@@ -27,7 +27,7 @@ module.exports = function (app) {
     try {
       const product = await Product.findById(req.params.id);
       if (!product || !product.image.data) {
-        return res.status(404).send({ message: "Image not found." });
+        return res.status(404).send({ message: "图片未找到." });
       }
       res.set("Content-Type", product.image.contentType);
       res.send(product.image.data);
@@ -36,12 +36,12 @@ module.exports = function (app) {
     }
   });
 
-  // 修改商品状态（下架）接口
+  // 修改商品状态/ 下架商品
   app.put("/api/products/:id/status", [verifyToken], async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
       if (!product) {
-        return res.status(404).send({ message: "Product not found." });
+        return res.status(404).send({ message: "商品不存在." });
       }
       // 验证当前用户是否是商品所有者
       if (product.owner.toString() !== req.userId) {
@@ -51,13 +51,13 @@ module.exports = function (app) {
       }
       product.status = req.body.status; // 期望前端传来 'sold'
       await product.save();
-      res.status(200).send({ message: "Product status updated successfully." });
+      res.status(200).send({ message: "商品状态更新成功." });
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
   });
 
-  // 发布新商品 (需要登录)
+  // 发布新商品
   // 使用 multer 中间件来处理 'imageFile' 字段的单个文件上传
   app.post(
     "/api/products",
@@ -65,7 +65,7 @@ module.exports = function (app) {
     async (req, res) => {
       // 验证文件是否存在
       if (!req.file) {
-        return res.status(400).send({ message: "No image file uploaded." });
+        return res.status(400).send({ message: "未上传商品图片" });
       }
 
       try {
@@ -84,14 +84,14 @@ module.exports = function (app) {
         });
         
         await product.save();
-        res.status(201).send({ message: "Product created successfully." });
+        res.status(201).send({ message: "商品创建成功." });
       } catch (error) {
         res.status(500).send({ message: error.message });
       }
     }
   );
 
-  // ... (添加留言、收藏、评价用户的路由保持不变) ...
+  // 留言
   app.post("/api/products/:id/comments", [verifyToken], async (req, res) => {
     try {
       const user = await User.findById(req.userId);
@@ -108,6 +108,7 @@ module.exports = function (app) {
     }
   });
 
+  // 收藏
   app.post("/api/products/:id/favorite", [verifyToken], async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
@@ -124,6 +125,7 @@ module.exports = function (app) {
     }
   });
 
+  // 评价
   app.post("/api/users/:id/evaluate", [verifyToken], async (req, res) => {
     try {
       const { type } = req.body;
@@ -132,7 +134,7 @@ module.exports = function (app) {
         userToEvaluate.reputation[type]++;
       }
       await userToEvaluate.save();
-      res.status(200).send({ message: "Evaluation submitted successfully." });
+      res.status(200).send({ message: "评价提交成功." });
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
@@ -169,7 +171,7 @@ module.exports = function (app) {
     try {
       const product = await Product.findById(req.params.id);
       if (!product) {
-        return res.status(404).send({ message: "Product not found." });
+        return res.status(404).send({ message: "商品不存在." });
       }
       if (product.owner.toString() !== req.userId) {
         return res.status(403).send({
@@ -188,9 +190,9 @@ module.exports = function (app) {
       }
 
       await product.save();
-      res.status(200).send({ message: "Product updated successfully." });
+      res.status(200).send({ message: "商品更新成功." });
     } catch (error) {
-      console.error("[ERROR in product update]", error);
+      console.error("错误信息:", error);
       res.status(500).send({ message: error.message });
     }
   };
@@ -273,7 +275,7 @@ module.exports = function (app) {
     try {
       const product = await Product.findById(req.params.id);
       if (!product)
-        return res.status(404).send({ message: "Product not found." });
+        return res.status(404).send({ message: "商品不存在." });
       if (product.owner.toString() !== req.userId)
         return res.status(403).send({ message: "Forbidden." });
 
@@ -346,7 +348,7 @@ module.exports = function (app) {
                     select: 'nickname'
                 }).select('-image').lean();
             if (products.length === 0) {
-                return res.status(200).json({ message: 'No data to export.' });
+                return res.status(200).json({ message: '没有数据可导出.' });
             }
             const csvData = parser.parse(products);
             res.header('Content-Type', 'text/csv');
@@ -373,7 +375,7 @@ module.exports = function (app) {
             const opts = { fields, withBOM: true };
             const parser = new Parser(opts);
             if (orders.length === 0) {
-              return res.status(200).json({ message: 'No data to export.' });
+              return res.status(200).json({ message: '没有数据可导出.' });
             }
             const csvData = parser.parse(orders);
             res.header('Content-Type', 'text/csv');

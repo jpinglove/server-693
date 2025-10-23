@@ -12,8 +12,7 @@ const OrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // 简化模型，假设交易在线下完成，所以没有买家信息
-    // 也可以后续扩展增加 buyer 字段
+    // 简化，假设交易在线下完成，所以没有买家信息
     transactionDate: {
       type: Date,
       default: Date.now,
