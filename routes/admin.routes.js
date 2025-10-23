@@ -113,7 +113,7 @@ module.exports = function (app) {
                 let errorLogs = [];
                 let successCount = 0;
                 let failureCount = 0;
-                const requiredFields = ['title', 'description', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
+                const requiredFields = ['title', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
 
                 // 使用 for...of 循环来正确处理 async/await
                 for (const [index, row] of results.entries()) {
