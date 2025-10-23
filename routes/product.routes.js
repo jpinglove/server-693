@@ -17,7 +17,20 @@ module.exports = function (app) {
     try {
       const product = await Product.findById(req.params.id)
         .select("-image")
-        .populate("owner", "nickname reputation");
+        .populate("owner", "nickname reputation")
+        .populate({
+                path: 'comments',
+                populate: {
+                    path: 'user',
+                    select: 'nickname'
+                },
+                options: {
+                    sort: { 'createdAt': -1 } // 按创建时间降序排列
+                }
+        });
+      if (!product) {
+        return res.status(404).send({ message: "Product not found." });
+      }
       res.status(200).send(product);
     } catch (error) {
       res.status(500).send({ message: error.message });
