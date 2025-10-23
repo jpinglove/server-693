@@ -207,7 +207,7 @@ module.exports = function (app) {
         try {
             // 更新用户
             const updatedUser = await User.findByIdAndUpdate(
-                userId, // 要更新的文档的 _id
+                { studentId: userId }, // 用户id 
                 { $set: { isAdmin: isAdminStatus } }, // 更新的操作
                 { new: true }
             );
@@ -236,5 +236,4 @@ module.exports = function (app) {
             res.status(500).send({ message: '服务器内部错误.' });
         }
     });
-  
 };
