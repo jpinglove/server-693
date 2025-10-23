@@ -89,7 +89,7 @@ module.exports = function (app) {
       bufferStream.end(req.file.buffer);
 
 
-        bufferStream.pipe(csv(bom : true))
+        bufferStream.pipe(csv())
           .on('data', (data) => {
             console.log('Parsed CSV row keys:', Object.keys(data));
             results.push(data)
