@@ -212,7 +212,7 @@ module.exports = function (app) {
 
         try {
             // 更新用户
-            const updatedUser = await User.findByIdAndUpdate(
+            const updatedUser = await User.findOneAndUpdate(
                 { studentId: userId }, // 用户id 
                 { $set: { isAdmin: isAdminStatus } }, // 更新的操作
                 { new: true }
