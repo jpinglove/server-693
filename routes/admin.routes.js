@@ -78,6 +78,7 @@ module.exports = function (app) {
     res.send(csvData);
 });
   
+
   // 导入商品
   app.post(
     "/api/admin/import/products",
@@ -87,6 +88,77 @@ module.exports = function (app) {
       const bufferStream = new stream.PassThrough();
       bufferStream.end(req.file.buffer);
 
+
+        bufferStream.pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', async () => {
+                let validProductsToInsert = [];
+                let errorLogs = [];
+                let successCount = 0;
+                let failureCount = 0;
+
+                // 使用 for...of 循环来正确处理 async/await
+                for (const [index, row] of results.entries()) {
+                    const lineNumber = index + 2; // CSV行号从2开始 (1是表头)
+
+                    // 1. 字段非空校验
+                    const requiredFields = ['title', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
+                    let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
+                    if (missingField) {
+                        errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
+                        failureCount++;
+                        continue; // 跳过此行
+                    }
+
+                    try {
+                        // 2. 查找发布者
+                        const owner = await User.findOne({ studentId: row.ownerStudentId });
+                        if (!owner) {
+                            errorLogs.push(`Line ${lineNumber}: Owner with studentId "${row.ownerStudentId}" not found.`);
+                            failureCount++;
+                            continue; // 跳过此行
+                        }
+
+                        // 3. 准备待插入的数据
+                        validProductsToInsert.push({
+                            title: row.title,
+                            description: row.description || '', // description 可选
+                            price: Number(row.price),
+                            category: row.category,
+                            campus: row.campus,
+                            condition: row.condition,
+                            owner: owner._id, // 使用查找到的用户的 _id
+                            // 导入的商品没有图片，可以后续让用户自己编辑添加
+                        });
+                        successCount++;
+
+                    } catch (dbError) {
+                        errorLogs.push(`Line ${lineNumber}: Database error - ${dbError.message}`);
+                        failureCount++;
+                    }
+                }
+
+                // 4. 批量插入所有有效数据
+                if (validProductsToInsert.length > 0) {
+                    try {
+                        await Product.insertMany(validProductsToInsert, { ordered: false }); // ordered: false 允许部分成功
+                    } catch (insertError) {
+                        // insertMany 的错误比较复杂，这里简化处理
+                        console.error("Bulk insert error:", insertError);
+                        // 即使批量插入失败，也继续往下走，返回日志
+                    }
+                }
+                
+                // 5. 返回详细的导入报告
+                res.status(200).send({
+                    message: `Import process finished.`,
+                    successCount: successCount,
+                    failureCount: failureCount,
+                    errors: errorLogs
+                });
+            });
+  
+      /*
       bufferStream
         .pipe(csv())
         .on("data", (data) => results.push(data))
@@ -101,8 +173,10 @@ module.exports = function (app) {
             res.status(500).send({ message: error.message });
           }
         });
+      */
     }
   );
+  
 
   // 每日发布量统计
   app.get("/api/admin/stats/daily-posts", [verifyToken], async (req, res) => {
