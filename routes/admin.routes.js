@@ -90,7 +90,7 @@ module.exports = function (app) {
 
       const csvOptions = {
             bom: true,
-            separator: ';'
+            // separator: ';'
         };
 
         bufferStream.pipe(csv(csvOptions))
