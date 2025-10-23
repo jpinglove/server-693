@@ -91,9 +91,19 @@ module.exports = function (app) {
       const csvOptions = {
             bom: true,
             // separator: ';'
-        };
+            mapHeaders: ({ header, index }) => header.trim().replace(/\uFEFF/g, '')
+          };
+      
+        let headersLogged = false; // 加一个标志位，只打印一次表头
 
-        bufferStream.pipe(csv(csvOptions))
+
+      bufferStream.pipe(csv(csvOptions))
+          .on('headers', (headers) => {
+                // 打印出 csv-parser 最终识别到的表头数组
+                console.log('--- CSV HEADERS DIAGNOSTIC ---');
+                console.log('Headers identified by parser:', headers);
+                console.log('--- END DIAGNOSTIC ---');
+            })
           .on('data', (data) => {
             console.log('Parsed CSV row keys:', Object.keys(data));
             results.push(data)
