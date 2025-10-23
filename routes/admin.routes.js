@@ -89,20 +89,23 @@ module.exports = function (app) {
       bufferStream.end(req.file.buffer);
 
 
-        bufferStream.pipe(csv())
-            .on('data', (data) => results.push(data))
+        bufferStream.pipe(csv(bom : true))
+          .on('data', (data) => {
+            console.log('Parsed CSV row keys:', Object.keys(data));
+            results.push(data)
+          })
             .on('end', async () => {
                 let validProductsToInsert = [];
                 let errorLogs = [];
                 let successCount = 0;
                 let failureCount = 0;
+                const requiredFields = ['title', 'description', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
 
                 // 使用 for...of 循环来正确处理 async/await
                 for (const [index, row] of results.entries()) {
                     const lineNumber = index + 2; // CSV行号从2开始 (1是表头)
 
                     // 1. 字段非空校验
-                    const requiredFields = ['title', 'price', 'category', 'campus', 'condition', 'ownerStudentId'];
                     let missingField = requiredFields.find(field => !row[field] || row[field].trim() === '');
                     if (missingField) {
                         errorLogs.push(`Line ${lineNumber}: Missing or empty required field "${missingField}".`);
