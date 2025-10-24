@@ -271,21 +271,36 @@ module.exports = function (app) {
   // 增加商品浏览量
   app.put("/api/products/:id/view", [verifyToken], async (req, res) => {
     try {
-      // 使用 $inc 原子操作增加浏览量
-      await Product.findByIdAndUpdate(req.params.id, {
-        $inc: { viewCount: 1 },
-      });
-      // 使用 $addToSet 将商品ID加入用户浏览记录，避免重复
-      await User.findByIdAndUpdate(req.userId, {
-        $addToSet: { viewHistory: req.params.id },
-      });
-      res.status(200).send({ message: "View count updated." });
+        const productId = req.params.id;
+        const userId = req.userId;
+
+        // 增加商品浏览量
+        await Product.findByIdAndUpdate(productId, { $inc: { viewCount: 1 } });
+        
+        // 更新用户浏览记录
+        // 从 viewHistory 数组中拉取所有关于此商品的旧记录
+        await User.findByIdAndUpdate(userId, {
+            $pull: { viewHistory: { product: productId } }
+        });
+
+        // 在 viewHistory 数组的开头插入一条新记录
+        await User.findByIdAndUpdate(userId, {
+            $push: {
+                viewHistory: {
+                    $each: [{ product: productId, viewedAt: new Date() }],
+                    $position: 0 // 插入到数组的最前面
+                }
+            }
+        });
+
+        res.status(200).send({ message: 'View recorded successfully.' });
     } catch (error) {
-      res.status(500).send({ message: error.message });
+        console.error("Error recording view:", error);
+        res.status(500).send({ message: "Error recording view." });
     }
   });
 
-  // 修改商品状态（下架）接口 - 增加创建订单的逻辑
+  // 修改商品状态/下架 接口 - 增加创建订单的逻辑
   app.put("/api/products/:id/status", [verifyToken], async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
@@ -328,7 +343,6 @@ module.exports = function (app) {
         if (product.status === 'sold') {
           return res.status(400).send({ message: "This product has already been sold." });
         }
-
         // 商品状态更新为 "sold"
         product.status = "sold";
         await product.save();
@@ -365,13 +379,44 @@ module.exports = function (app) {
     // 获取用户浏览记录
     app.get("/api/user/view-history", [verifyToken], async (req, res) => {
       try {
-        const user = await User.findById(req.userId).populate({
-          path: "viewHistory",
-          select: "-image", // 同样不在列表页加载图片
-        });
-        res.status(200).send(user.viewHistory);
+          const page = parseInt(req.query.page, 10) || 1;
+          const limit = parseInt(req.query.limit, 10) || 10;
+          const skip = (page - 1) * limit;
+
+          const user = await User.findById(req.userId)
+              .populate({
+                  path: 'viewHistory.product',
+                  select: '-image', // 不加载图片
+                  // 获取发布者昵称
+                  populate: {
+                      path: 'owner',
+                      select: 'nickname'
+                  }
+              })
+              .select('viewHistory'); // 只选择 viewHistory 字段
+
+          if (!user || !user.viewHistory) {
+              return res.status(200).send({
+                  history: [],
+                  total: 0,
+                  page: 1,
+                  pages: 1
+              });
+          }
+
+          // 浏览记录数组默认就是按最新浏览排序的
+          const total = user.viewHistory.length;
+          const historySlice = user.viewHistory.slice(skip, skip + limit);
+          
+          res.status(200).send({
+              history: historySlice,
+              total: total,
+              page: page,
+              pages: Math.ceil(total / limit)
+          });
+
       } catch (error) {
-        res.status(500).send({ message: error.message });
+          res.status(500).send({ message: error.message });
       }
     });
 

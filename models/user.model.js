@@ -25,12 +25,16 @@ const UserSchema = new mongoose.Schema(
       neutral: { type: Number, default: 0 },
       bad: { type: Number, default: 0 },
     },
-    viewHistory: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
+    viewHistory: [{
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product'
+        },
+        viewedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
   },
   { timestamps: true }
 );
