@@ -406,6 +406,9 @@ module.exports = function (app) {
 
           // 浏览记录数组默认就是按最新浏览排序的
           const total = user.viewHistory.length;
+          console.log('json:', JSON.stringify(user.viewHistory));
+          console.log('total:', total);
+
           const historySlice = user.viewHistory.slice(skip, skip + limit);
           
           res.status(200).send({
