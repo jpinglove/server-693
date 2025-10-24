@@ -84,19 +84,41 @@ module.exports = function (app) {
 
 
   // 每日发布量统计
-  app.get("/api/admin/stats/daily-posts", [verifyToken], async (req, res) => {
-    const stats = await Product.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-    res.status(200).send(stats);
-  });
+    app.get("/api/admin/stats/daily-posts", [verifyToken], async (req, res) => {
+            const stats = await Product.aggregate([
+            {
+                $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                count: { $sum: 1 },
+            },
+            },
+            { $sort: { _id: 1 } },
+        ]);
+        res.status(200).send(stats);
+    });
 
+    // 每日交易量
+    app.get('/api/admin/stats/daily-transactions', [verifyToken], async (req, res) => {
+        try {
+            const stats = await Order.aggregate([
+                // 按 "年-月-日" 对 transactionDate 分组，并计算每组的数量
+                { 
+                    $group: { 
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$transactionDate" } }, 
+                        count: { $sum: 1 } 
+                    } 
+                },
+                // 按日期升序排列结果
+                { 
+                    $sort: { _id: 1 } 
+                }
+            ]);
+            res.status(200).send(stats);
+        } catch (error) {
+            console.error('[ERROR]:', error);
+            res.status(500).send({ message: '获取每日交易量统计失败.' });
+        }
+    });
 
 
     // 设置/取消管理员权限
