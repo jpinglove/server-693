@@ -418,6 +418,9 @@ module.exports = function (app) {
               pages: Math.ceil(total / limit)
           });
 
+        user.viewHistory = [];
+        await user.save();
+
       } catch (error) {
           res.status(500).send({ message: error.message });
       }
