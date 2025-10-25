@@ -120,13 +120,50 @@ module.exports = function (app) {
         }
     });
 
+    // 热门分类销售统计
+    app.get('/api/admin/stats/hot-categories-by-sales', [verifyToken], async (req, res) => {
+        try {
+            const stats = await Order.aggregate([
+                // 使用 $lookup 关联 products 集合
+                // 将 orders 集合中的 product 字段（ID）与 products 集合中的 _id 字段进行匹配
+                {
+                    $lookup: {
+                        from: 'products', // products 集合的名称 (通常是复数)
+                        localField: 'product',
+                        foreignField: '_id',
+                        as: 'productDetails' // 关联查询的结果存入 productDetails 数组
+                    }
+                },
+                // 使用 $unwind 解构 productDetails 数组
+                // 因为一个订单只对应一个商品，所以这个数组只有一个元素
+                {
+                    $unwind: '$productDetails'
+                },
+                // 按商品的分类 (category) 进行分组，并计算每个分组的数量
+                {
+                    $group: {
+                        _id: '$productDetails.category', // 按商品分类进行分组
+                        count: { $sum: 1 } // 计算每个分类的销售量
+                    }
+                },
+                //按销售量降序排列
+                {
+                    $sort: { count: -1 }
+                }
+            ]);
+            res.status(200).send(stats);
+        } catch (error) {
+            console.error('[ERROR] Hot categories by sales:', error);
+            res.status(500).send({ message: 'Failed to fetch hot categories stats.' });
+        }
+    });
 
     // 设置/取消管理员权限
     app.get('/api/setadmin', async (req, res) => {
         console.log(JSON.stringify(req.query))
         
         const { userId, setadmin, secretKey } = req.query;
-      
+
         // if (secretKey !== process.env.MANUAL_API_SECRET_KEY) {
         //     return res.status(403).send({ message: 'Forbidden: Invalid secret key.' });
         // }
