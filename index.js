@@ -35,13 +35,14 @@ require('./routes/admin.routes')(app);
 // Vercel 部署专用
 module.exports = app;
 
+//  发布时第一处修改
 // 发布时把下面的listen注掉
 // Set port, listen for requests
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
-});
+// const PORT = process.env.PORT || 8080;
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}.`);
+// });
 
 // 开发/调试时打开上面的注释, 部署时 注掉启动代码
 
