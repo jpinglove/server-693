@@ -29,7 +29,7 @@ module.exports = function (app) {
                 }
         });
       if (!product) {
-        return res.status(404).send({ message: "Product not found." });
+        return res.status(404).send({ message: "商品未找到." });
       }
       res.status(200).send(product);
     } catch (error) {
@@ -37,7 +37,7 @@ module.exports = function (app) {
     }
   });
 
-  // 专门用于获取图片的路由
+  // 用于获取图片的接口
   app.get("/api/products/:id/image", async (req, res) => {
     try {
       const product = await Product.findById(req.params.id);
@@ -58,13 +58,13 @@ module.exports = function (app) {
       if (!product) {
         return res.status(404).send({ message: "商品不存在." });
       }
-      // 验证当前用户是否是商品所有者
+      // 当前用户是否是商品所有者
       if (product.owner.toString() !== req.userId) {
         return res.status(403).send({
-          message: "Forbidden: You are not the owner of this product.",
+          message: "你不是商品的发布者.",
         });
       }
-      product.status = req.body.status; // 期望前端传来 'sold'
+      product.status = req.body.status;
       await product.save();
       res.status(200).send({ message: "商品状态更新成功." });
     } catch (error) {
@@ -159,7 +159,7 @@ module.exports = function (app) {
   app.get("/api/user/favorites", [verifyToken], async (req, res) => {
     try {
       const user = await User.findById(req.userId);
-      // 找到所有 favoritedBy 数组包含当前用户ID的商品
+      // 找到 favoritedBy 数组包含当前用户ID的商品
       const products = await Product.find({ favoritedBy: user._id }).select(
         "-image"
       );
@@ -181,6 +181,7 @@ module.exports = function (app) {
       res.status(500).send({ message: error.message });
     }
   });
+
   // 更新商品信息接口
   const updateProductLogic = async (req, res) => {
     try {
@@ -190,7 +191,7 @@ module.exports = function (app) {
       }
       if (product.owner.toString() !== req.userId) {
         return res.status(403).send({
-          message: "Forbidden: You are not the owner of this product.",
+          message: "你不是商品的发布者.",
         });
       }
 
@@ -212,7 +213,7 @@ module.exports = function (app) {
     }
   };
 
-  // 更新商品信息接口 (用于不带图片的更新)
+  // 更新商品信息接口
   app.put(
     "/api/products/:id",
     [verifyToken, upload.single("imageFile")],
@@ -225,7 +226,7 @@ module.exports = function (app) {
     updateProductLogic
   );
 
-  // 获取所有商品 - 支持排序和筛选
+  // 获取所有商品
   app.get("/api/products", async (req, res) => {
     const {
       category,
@@ -250,8 +251,8 @@ module.exports = function (app) {
       if (priceMax) query.price.$lte = Number(priceMax);
     }
 
-    // 排序条件
-    let sort = { createdAt: -1 }; // 默认按创建时间降序
+    // 排序
+    let sort = { createdAt: -1 }; // 按创建时间降序
     if (sortBy) {
       sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
     }
@@ -278,12 +279,12 @@ module.exports = function (app) {
         await Product.findByIdAndUpdate(productId, { $inc: { viewCount: 1 } });
         
         // 更新用户浏览记录
-        // 从 viewHistory 数组中拉取所有关于此商品的旧记录
+        // 拉取商品的旧记录
         await User.findByIdAndUpdate(userId, {
             $pull: { viewHistory: { product: productId } }
         });
 
-        // 在 viewHistory 数组的开头插入一条新记录
+        // 在数组的开头插入一条新记录
         await User.findByIdAndUpdate(userId, {
             $push: {
                 viewHistory: {
@@ -293,10 +294,10 @@ module.exports = function (app) {
             }
         });
 
-        res.status(200).send({ message: 'View recorded successfully.' });
+        res.status(200).send({ message: '增加浏览量成功.' });
     } catch (error) {
-        console.error("Error recording view:", error);
-        res.status(500).send({ message: "Error recording view." });
+        console.error(error);
+        res.status(500).send({ message: error.message });
     }
   });
 
@@ -307,7 +308,7 @@ module.exports = function (app) {
       if (!product)
         return res.status(404).send({ message: "商品不存在." });
       if (product.owner.toString() !== req.userId)
-        return res.status(403).send({ message: "Forbidden." });
+        return res.status(403).send({ message: "您不是商品的发布者." });
 
       product.status = "sold";
       await product.save();
@@ -322,7 +323,7 @@ module.exports = function (app) {
 
       res
         .status(200)
-        .send({ message: "Product status updated and order created." });
+        .send({ message: "商品状态更新成功." });
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
@@ -333,15 +334,15 @@ module.exports = function (app) {
       try {
         const product = await Product.findById(req.params.id);
         if (!product) {
-          return res.status(404).send({ message: "Product not found." });
+          return res.status(404).send({ message: "商品不存在." });
         }
         // 验证当前用户是否是商品所有者
         if (product.owner.toString() !== req.userId) {
-          return res.status(403).send({ message: "You are not the owner of this product." });
+          return res.status(403).send({ message: "您不是商品的发布者." });
         }
         // 防止重复卖出
         if (product.status === 'sold') {
-          return res.status(400).send({ message: "This product has already been sold." });
+          return res.status(400).send({ message: "商品已经卖出." });
         }
         // 商品状态更新为 "sold"
         product.status = "sold";
@@ -357,7 +358,7 @@ module.exports = function (app) {
         });
         await order.save();
 
-        res.status(200).send({ message: "Product marked as sold and order created successfully." });
+        res.status(200).send({ message: "商品卖出成功." });
 
       } catch (error) {
         res.status(500).send({ message: error.message });
@@ -515,7 +516,7 @@ module.exports = function (app) {
         res.attachment('my_favorites.csv');
         res.send(csvData);
       } catch (error) {
-        res.status(500).send({ message: error.message });
+        res.status(500).send({ message: '服务器内部错误.' });
       }
     });
 
@@ -546,7 +547,7 @@ module.exports = function (app) {
             let failureCount = 0;
             const requiredFields = ['title', 'price', 'category', 'campus', 'condition'];
 
-            // 使用 循环来处理 async/await
+            // 使用 循环来处理
             for (const [index, row] of results.entries()) {
               const lineNumber = index + 2; // CSV行号从2开始 , 1是表头
 
@@ -578,18 +579,18 @@ module.exports = function (app) {
               }
             }
 
-            // 插入所有有效数据
+            // 插入有效数据
             if (validProductsToInsert.length > 0) {
               try {
                 await Product.insertMany(validProductsToInsert, { ordered: false });
               } catch (insertError) {
-                console.error("insert error:", insertError);
+                console.error(insertError);
               }
             }
                 
             // 返回详细的导入报告
             res.status(200).send({
-              message: `Import process finished.`,
+              message: `导入完成.`,
               successCount: successCount,
               failureCount: failureCount,
               errors: errorLogs
@@ -637,8 +638,8 @@ module.exports = function (app) {
             res.status(200).send({ message: '评价成功提交.' });
 
         } catch (error) {
-            console.error('[ERROR]', error);
-            res.status(500).send({ message: 'An internal server error occurred.' });
+            console.error(error);
+            res.status(500).send({ message: '服务器内部错误.' });
         }
     });
   

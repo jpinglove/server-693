@@ -1,12 +1,11 @@
 const { Parser } = require("json2csv");
-const csv = require("csv-parser");
-const stream = require("stream");
+// const csv = require("csv-parser");
+// const stream = require("stream");
 const { verifyToken } = require("../middleware/authJwt"); // 假设管理员验证为 isAdmin
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
-const { json } = require("stream/consumers");
-const upload = require("multer")(); // 使用 multer 处理导入的文件
+// const upload = require("multer")(); // 使用 multer 处理导入的文件
 
 module.exports = function (app) {
   // 导出用户
@@ -48,7 +47,7 @@ module.exports = function (app) {
                     select: 'nickname'
                 }).select('-image').lean();
     if (products.length === 0) {
-        return res.status(200).json({ message: 'No data to export.' });
+        return res.status(200).json({ message: '没有数据可导出.' });
     }
     
     const csvData = parser.parse(products);
@@ -85,16 +84,21 @@ module.exports = function (app) {
 
   // 每日发布量统计
     app.get("/api/admin/stats/daily-posts", [verifyToken], async (req, res) => {
+        try {
             const stats = await Product.aggregate([
-            {
-                $group: {
-                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                count: { $sum: 1 },
-            },
-            },
-            { $sort: { _id: 1 } },
-        ]);
-        res.status(200).send(stats);
+                {
+                    $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 },
+                },
+                },
+                { $sort: { _id: 1 } },
+            ]);
+            res.status(200).send(stats);
+        } catch (error) {
+            console.error(error);
+            res.status(500).send({ message: "获取每日发布量统计失败." });
+        }
     });
 
     // 每日交易量
@@ -115,13 +119,13 @@ module.exports = function (app) {
             ]);
             res.status(200).send(stats);
         } catch (error) {
-            console.error('[ERROR]:', error);
+            console.error(error);
             res.status(500).send({ message: '获取每日交易量统计失败.' });
         }
     });
 
     // 热门分类销售统计
-    app.get('/api/admin/stats/hot-categories-by-sales', [verifyToken], async (req, res) => {
+    app.get('/api/admin/stats/hot-categories-sales', [verifyToken], async (req, res) => {
         try {
             const stats = await Order.aggregate([
                 // 使用 $lookup 关联 products 集合
@@ -153,8 +157,8 @@ module.exports = function (app) {
             ]);
             res.status(200).send(stats);
         } catch (error) {
-            console.error('[ERROR] Hot categories by sales:', error);
-            res.status(500).send({ message: 'Failed to fetch hot categories stats.' });
+            console.error(error);
+            res.status(500).send({ message: '统计热门分类失败.' });
         }
     });
 
@@ -163,11 +167,6 @@ module.exports = function (app) {
         console.log(JSON.stringify(req.query))
         
         const { userId, setadmin, secretKey } = req.query;
-
-        // if (secretKey !== process.env.MANUAL_API_SECRET_KEY) {
-        //     return res.status(403).send({ message: 'Forbidden: Invalid secret key.' });
-        // }
-        console.log("userid =", userId, "setadmin =", setadmin)
 
         // 验证参数是否存在
         if (!userId || !setadmin) {
@@ -207,10 +206,7 @@ module.exports = function (app) {
             });
 
         } catch (error) {
-            console.error('[ADMIN SET ERROR]', error);
-            if (error.name === 'CastError') {
-                return res.status(400).send({ message: `无效的 ID: "${userId}".` });
-            }
+            console.error(error);
             res.status(500).send({ message: '服务器内部错误.' });
         }
     });

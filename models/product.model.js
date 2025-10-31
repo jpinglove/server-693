@@ -8,20 +8,11 @@ const ProductSchema = new mongoose.Schema(
     category: { type: String, required: true },
 
     viewCount: { type: Number, default: 0 },
-    campus: { type: String, required: true }, // e.g., '主校区', '南校区'
+    campus: { type: String, required: true }, //'主校区', '南校区'
     condition: {
       type: String,
       enum: ["全新", "九成新", "八成新", "轻微瑕疵"],
       required: true,
-    },
-
-    status: { type: String, enum: ["selling", "sold"], default: "selling" },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-    // 用于存储图片的对象
-    image: {
-      data: Buffer, // 用于存储图片的二进制数据
-      contentType: String, // 用于存储图片的MIME类型, e.g., 'image/png'
     },
 
     // 商品状态，默认为 'selling'
@@ -35,6 +26,13 @@ const ProductSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    // 用于存储图片的对象
+    image: {
+      data: Buffer, // 用于存储图片的二进制数据
+      contentType: String, // 用于存储图片的MIME类型,'image/png'
+    },
+
     comments: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -59,3 +57,5 @@ const ProductSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("Product", ProductSchema);
+
+

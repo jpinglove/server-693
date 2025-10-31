@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    // 简单的信誉评价体系
+    // 信誉评价
     reputation: {
       good: { type: Number, default: 0 },
       neutral: { type: Number, default: 0 },
